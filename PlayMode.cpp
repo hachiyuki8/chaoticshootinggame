@@ -175,7 +175,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				);
 			}
 
-			draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
+			draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.06f);
+		}
+
+		for (auto const &p : game.platforms) {
+			glm::u8vec4 col = glm::u8vec4(0xff, 0xff, 0x00, 0xff); // TODO
+			lines.draw(glm::vec3(p.positionMin.x, p.positionMin.y, 0.0f), glm::vec3(p.positionMax.x, p.positionMin.y, 0.0f), col);
+			lines.draw(glm::vec3(p.positionMin.x, p.positionMax.y, 0.0f), glm::vec3(p.positionMax.x, p.positionMax.y, 0.0f), col);
+			lines.draw(glm::vec3(p.positionMin.x, p.positionMin.y, 0.0f), glm::vec3(p.positionMin.x, p.positionMax.y, 0.0f), col);
+			lines.draw(glm::vec3(p.positionMax.x, p.positionMin.y, 0.0f), glm::vec3(p.positionMax.x, p.positionMax.y, 0.0f), col);
 		}
 	}
 	GL_ERRORS();

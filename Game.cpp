@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 void Player::Controls::send_controls_message(Connection *connection_) const {
 	assert(connection_);
@@ -75,6 +76,59 @@ bool Player::Controls::recv_controls_message(Connection *connection_) {
 //-----------------------------------------
 
 Game::Game() : mt(0x15466666) {
+	// horizontal
+	{
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-0.2f, 0.3f);
+		platforms.back().positionMax = glm::vec2(0.2f, 0.4f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-1.3f, -0.5f);
+		platforms.back().positionMax = glm::vec2(-0.8f, -0.4f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(0.6f, 0.3f);
+		platforms.back().positionMax = glm::vec2(1.2f, 0.4f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(1.0f, -0.6f);
+		platforms.back().positionMax = glm::vec2(1.4f, -0.7f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(0.0f, -0.7f);
+		platforms.back().positionMax = glm::vec2(0.4f, -0.6f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-1.0f, -0.1f);
+		platforms.back().positionMax = glm::vec2(-0.6f, 0.0f);
+	}
+
+	// vertical
+	{
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-0.8f, 0.3f);
+		platforms.back().positionMax = glm::vec2(-0.7f, 0.8f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(0.7f, -0.9f);
+		platforms.back().positionMax = glm::vec2(0.8f, -0.5f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(0.5f, 0.6f);
+		platforms.back().positionMax = glm::vec2(0.6f, 0.9f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(0.9f, -0.3f);
+		platforms.back().positionMax = glm::vec2(1.0f, 0.2f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-0.5f, -0.7f);
+		platforms.back().positionMax = glm::vec2(-0.4f, -0.2f);
+
+		platforms.emplace_back();
+		platforms.back().positionMin = glm::vec2(-0.1f, 0.1f);
+		platforms.back().positionMax = glm::vec2(0.0f, -0.3f);
+	}
 }
 
 Player *Game::spawn_player() {
@@ -84,6 +138,7 @@ Player *Game::spawn_player() {
 	//random point in the middle area of the arena:
 	player.position.x = glm::mix(ArenaMin.x + 2.0f * PlayerRadius, ArenaMax.x - 2.0f * PlayerRadius, 0.4f + 0.2f * mt() / float(mt.max()));
 	player.position.y = glm::mix(ArenaMin.y + 2.0f * PlayerRadius, ArenaMax.y - 2.0f * PlayerRadius, 0.4f + 0.2f * mt() / float(mt.max()));
+	player.position.y = ArenaMin.y + 2.0f * PlayerRadius;
 
 	do {
 		player.color.r = mt() / float(mt.max());
@@ -112,35 +167,29 @@ void Game::remove_player(Player *player) {
 void Game::update(float elapsed) {
 	//position/velocity update:
 	for (auto &p : players) {
-		glm::vec2 dir = glm::vec2(0.0f, 0.0f);
-		if (p.controls.left.pressed) dir.x -= 1.0f;
-		if (p.controls.right.pressed) dir.x += 1.0f;
-		if (p.controls.down.pressed) dir.y -= 1.0f;
-		if (p.controls.up.pressed) dir.y += 1.0f;
-
-		if (dir == glm::vec2(0.0f)) {
-			//no inputs: just drift to a stop
-			float amt = 1.0f - std::pow(0.5f, elapsed / (PlayerAccelHalflife * 2.0f));
-			p.velocity = glm::mix(p.velocity, glm::vec2(0.0f,0.0f), amt);
-		} else {
-			//inputs: tween velocity to target direction
-			dir = glm::normalize(dir);
-
-			float amt = 1.0f - std::pow(0.5f, elapsed / PlayerAccelHalflife);
-
-			//accelerate along velocity (if not fast enough):
-			float along = glm::dot(p.velocity, dir);
-			if (along < PlayerSpeed) {
-				along = glm::mix(along, PlayerSpeed, amt);
-			}
-
-			//damp perpendicular velocity:
-			float perp = glm::dot(p.velocity, glm::vec2(-dir.y, dir.x));
-			perp = glm::mix(perp, 0.0f, amt);
-
-			p.velocity = dir * along + glm::vec2(-dir.y, dir.x) * perp;
+		if (p.controls.jump.pressed) {
+			p.acceleration = 2.0f;
 		}
-		p.position += p.velocity * elapsed;
+
+		if (p.movement_index == 0) {
+			if (p.controls.left.pressed && !p.controls.right.pressed) {
+				p.position.x -= p.velocity.x * elapsed;
+			} else if (!p.controls.left.pressed && p.controls.right.pressed) {
+				p.position.x += p.velocity.x * elapsed;
+			} 
+
+			p.position.y += p.acceleration * elapsed;
+			p.acceleration += p.gravity * elapsed;
+		} else {
+			if (p.controls.down.pressed && !p.controls.up.pressed) {
+				p.position.y -= p.velocity.y * elapsed;
+			} else if (!p.controls.down.pressed && p.controls.up.pressed) {
+				p.position.y += p.velocity.y * elapsed;
+			} 
+
+			p.position.x += p.acceleration * elapsed;
+			p.acceleration += p.gravity * elapsed;
+		}
 
 		//reset 'downs' since controls have been handled:
 		p.controls.left.downs = 0;
@@ -152,36 +201,47 @@ void Game::update(float elapsed) {
 
 	//collision resolution:
 	for (auto &p1 : players) {
-		//player/player collisions:
-		for (auto &p2 : players) {
-			if (&p1 == &p2) break;
-			glm::vec2 p12 = p2.position - p1.position;
-			float len2 = glm::length2(p12);
-			if (len2 > (2.0f * PlayerRadius) * (2.0f * PlayerRadius)) continue;
-			if (len2 == 0.0f) continue;
-			glm::vec2 dir = p12 / std::sqrt(len2);
-			//mirror velocity to be in separating direction:
-			glm::vec2 v12 = p2.velocity - p1.velocity;
-			glm::vec2 delta_v12 = dir * glm::max(0.0f, -1.75f * glm::dot(dir, v12));
-			p2.velocity += 0.5f * delta_v12;
-			p1.velocity -= 0.5f * delta_v12;
-		}
+		// //player/player collisions:
+		// for (auto &p2 : players) {
+		// 	if (&p1 == &p2) break;
+		// 	glm::vec2 p12 = p2.position - p1.position;
+		// 	float len2 = glm::length2(p12);
+		// 	if (len2 > (2.0f * PlayerRadius) * (2.0f * PlayerRadius)) continue;
+		// 	if (len2 == 0.0f) continue;
+		// 	glm::vec2 dir = p12 / std::sqrt(len2);
+		// 	//mirror velocity to be in separating direction:
+		// 	glm::vec2 v12 = p2.velocity - p1.velocity;
+		// 	glm::vec2 delta_v12 = dir * glm::max(0.0f, -1.75f * glm::dot(dir, v12));
+		// 	p2.velocity += 0.5f * delta_v12;
+		// 	p1.velocity -= 0.5f * delta_v12;
+		// }
+
+		//player/block collisions:
+
 		//player/arena collisions:
 		if (p1.position.x < ArenaMin.x + PlayerRadius) {
 			p1.position.x = ArenaMin.x + PlayerRadius;
-			p1.velocity.x = std::abs(p1.velocity.x);
+			if (p1.movement_index == 1) {
+				p1.acceleration = 0.0f;
+			}
 		}
 		if (p1.position.x > ArenaMax.x - PlayerRadius) {
 			p1.position.x = ArenaMax.x - PlayerRadius;
-			p1.velocity.x =-std::abs(p1.velocity.x);
+			if (p1.movement_index == 1) {
+				p1.acceleration = 0.0f;
+			}
 		}
 		if (p1.position.y < ArenaMin.y + PlayerRadius) {
 			p1.position.y = ArenaMin.y + PlayerRadius;
-			p1.velocity.y = std::abs(p1.velocity.y);
+			if (p1.movement_index == 0) {
+				p1.acceleration = 0.0f;
+			}
 		}
 		if (p1.position.y > ArenaMax.y - PlayerRadius) {
 			p1.position.y = ArenaMax.y - PlayerRadius;
-			p1.velocity.y =-std::abs(p1.velocity.y);
+			if (p1.movement_index == 0) {
+				p1.acceleration = 0.0f;
+			}
 		}
 	}
 
