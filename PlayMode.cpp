@@ -42,6 +42,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			controls.jump.downs += 1;
 			controls.jump.pressed = true;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_l) {
+			controls.shoot.downs += 1;
+			controls.shoot.pressed = true;
+			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
@@ -58,6 +62,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_SPACE) {
 			controls.jump.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_l) {
+			controls.shoot.pressed = false;
 			return true;
 		}
 	}
@@ -153,6 +160,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
 		for (auto const &player : game.players) {
+			if (player.movement_index == 1 && player.gravity < 0.0f) {
+				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: LEFT", 0.06f);
+			} else if (player.movement_index == 1 && player.gravity > 0.0f) {
+				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: RIGHT", 0.06f);
+			} else if (player.movement_index == 0 && player.gravity < 0.0f) {
+				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: DOWN", 0.06f);
+			} else if (player.movement_index == 0 && player.gravity > 0.0f) {
+				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: UP", 0.06f);
+			} 
 			glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
 			if (&player == &game.players.front()) {
 				//mark current player (which server sends first):
@@ -184,6 +200,17 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			lines.draw(glm::vec3(p.positionMin.x, p.positionMax.y, 0.0f), glm::vec3(p.positionMax.x, p.positionMax.y, 0.0f), col);
 			lines.draw(glm::vec3(p.positionMin.x, p.positionMin.y, 0.0f), glm::vec3(p.positionMin.x, p.positionMax.y, 0.0f), col);
 			lines.draw(glm::vec3(p.positionMax.x, p.positionMin.y, 0.0f), glm::vec3(p.positionMax.x, p.positionMax.y, 0.0f), col);
+		}
+
+		for (auto const &b : game.bullets) {
+			glm::u8vec4 col = glm::u8vec4(b.color.x*255, b.color.y*255, b.color.z*255, 0xff);
+			for (uint32_t a = 0; a < circle.size(); ++a) {
+				lines.draw(
+					glm::vec3(b.position + Game::BulletRadius * circle[a], 0.0f),
+					glm::vec3(b.position + Game::BulletRadius * circle[(a+1)%circle.size()], 0.0f),
+					col
+				);
+			}
 		}
 	}
 	GL_ERRORS();

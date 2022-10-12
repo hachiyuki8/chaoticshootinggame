@@ -28,7 +28,7 @@ struct Button {
 struct Player {
 	//player inputs (sent from client):
 	struct Controls {
-		Button left, right, up, down, jump;
+		Button left, right, up, down, jump, shoot;
 
 		void send_controls_message(Connection *connection) const;
 
@@ -39,10 +39,12 @@ struct Player {
 	} controls;
 
 	bool jump_pressing = false;
+	bool shoot_pressing = false;
 
 	//player state (sent from server):
 	glm::vec2 position = glm::vec2(0.0f, 0.0f);
 	glm::vec2 velocity = glm::vec2(1.0f, 1.0f);
+	glm::vec2 bullet_direction = glm::vec2(-2.0f, 0.0f);
 	int movement_index = 0; // 0 for x axis (horizontal move), 1 for y (vertical)
 	float acceleration = 0.0f; 
 	float gravity = -9.8f;
@@ -57,6 +59,12 @@ struct Platform {
 	glm::vec2 positionMax = glm::vec2(0.0f, 0.0f);
 };
 
+struct Bullet {
+	glm::vec2 position = glm::vec2(0.0f, 0.0f);
+	glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+};
+
 struct Game {
 	std::list< Player > players; //(using list so they can have stable addresses)
 	Player *spawn_player(); //add player the end of the players list (may also, e.g., play some spawn anim)
@@ -64,6 +72,9 @@ struct Game {
 
 	std::mt19937 mt; //used for spawning players
 	uint32_t next_player_number = 1; //used for naming players
+
+	float timer = 0.0f;
+	float interval = 5.0f;
 
 	Game();
 
@@ -83,8 +94,13 @@ struct Game {
 	inline static constexpr float PlayerSpeed = 5.0f;
 	inline static constexpr float PlayerAccelHalflife = 0.05f;
 
+	inline static constexpr float BulletRadius = 0.02f;
+
 	//platforms:
 	std::list< Platform > platforms;
+
+	//bullets:
+	std::list < Bullet > bullets;
 
 	bool check_collision(float leftA, float leftB, float rightA, float rightB, float topA, float topB, float bottomA, float bottomB);
 	
