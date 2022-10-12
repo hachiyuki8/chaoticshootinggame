@@ -118,7 +118,7 @@ Game::Game() : mt(0x15466666) {
 		platforms.back().positionMax = glm::vec2(-0.4f, -0.2f);
 	}
 
-	srand(time(NULL)); // https://cplusplus.com/reference/cstdlib/rand/
+	srand((unsigned int)time(NULL)); // https://cplusplus.com/reference/cstdlib/rand/
 }
 
 Player *Game::spawn_player() {
@@ -451,7 +451,7 @@ void Game::update(float elapsed) {
 				//bullet/player collisions:
 				bool collide2 = false;
 				for (auto &player : players) {
-					float dist = std::sqrt(
+					float dist = (float) std::sqrt(
 						std::pow(player.position.x - (*iter).position.x, 2) + 
 						std::pow(player.position.y - (*iter).position.y, 2));
 					if (dist < PlayerRadius + BulletRadius && player.color != (*iter).color) {
