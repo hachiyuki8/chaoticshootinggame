@@ -38,10 +38,12 @@ struct Player {
 		bool recv_controls_message(Connection *connection);
 	} controls;
 
+	bool jump_pressing = false;
+
 	//player state (sent from server):
 	glm::vec2 position = glm::vec2(0.0f, 0.0f);
 	glm::vec2 velocity = glm::vec2(1.0f, 1.0f);
-	int movement_index = 1; // 0 for x axis (horizontal move), 1 for y (vertical)
+	int movement_index = 0; // 0 for x axis (horizontal move), 1 for y (vertical)
 	float acceleration = 0.0f; 
 	float gravity = -9.8f;
 
@@ -83,6 +85,8 @@ struct Game {
 
 	//platforms:
 	std::list< Platform > platforms;
+
+	bool check_collision(float leftA, float leftB, float rightA, float rightB, float topA, float topB, float bottomA, float bottomB);
 	
 
 	//---- communication helpers ----

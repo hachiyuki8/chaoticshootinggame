@@ -91,8 +91,8 @@ Game::Game() : mt(0x15466666) {
 		platforms.back().positionMax = glm::vec2(1.2f, 0.4f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(1.0f, -0.6f);
-		platforms.back().positionMax = glm::vec2(1.4f, -0.7f);
+		platforms.back().positionMin = glm::vec2(1.0f, -0.7f);
+		platforms.back().positionMax = glm::vec2(1.4f, -0.6f);
 
 		platforms.emplace_back();
 		platforms.back().positionMin = glm::vec2(0.0f, -0.7f);
@@ -110,7 +110,7 @@ Game::Game() : mt(0x15466666) {
 		platforms.back().positionMax = glm::vec2(-0.7f, 0.8f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(0.7f, -0.9f);
+		platforms.back().positionMin = glm::vec2(0.7f, -1.0f);
 		platforms.back().positionMax = glm::vec2(0.8f, -0.5f);
 
 		platforms.emplace_back();
@@ -118,16 +118,16 @@ Game::Game() : mt(0x15466666) {
 		platforms.back().positionMax = glm::vec2(0.6f, 0.9f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(0.9f, -0.3f);
-		platforms.back().positionMax = glm::vec2(1.0f, 0.2f);
+		platforms.back().positionMin = glm::vec2(1.0f, -0.3f);
+		platforms.back().positionMax = glm::vec2(1.1f, 0.2f);
 
 		platforms.emplace_back();
 		platforms.back().positionMin = glm::vec2(-0.5f, -0.7f);
 		platforms.back().positionMax = glm::vec2(-0.4f, -0.2f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(-0.1f, 0.1f);
-		platforms.back().positionMax = glm::vec2(0.0f, -0.3f);
+		platforms.back().positionMin = glm::vec2(-0.1f, -0.3f);
+		platforms.back().positionMax = glm::vec2(0.0f, 0.1f);
 	}
 }
 
@@ -164,31 +164,124 @@ void Game::remove_player(Player *player) {
 	assert(found);
 }
 
+// https://lazyfoo.net/tutorials/SDL/27_collision_detection/index.php
+bool Game::check_collision(float leftA, float leftB, float rightA, float rightB, float topA, float topB, float bottomA, float bottomB) {
+	//If any of the sides from A are outside of B
+    if (bottomA >= topB) {
+        return false;
+    }
+
+    if (topA <= bottomB) {
+        return false;
+    }
+
+    if (rightA <= leftB) {
+        return false;
+    }
+
+    if (leftA >= rightB) {
+        return false;
+    }
+
+    //If none of the sides from A are outside B
+    return true;
+}
+
 void Game::update(float elapsed) {
 	//position/velocity update:
 	for (auto &p : players) {
-		if (p.controls.jump.pressed) {
-			p.acceleration = 2.0f;
+		if (p.controls.jump.pressed && !p.jump_pressing) {
+			if (p.gravity < 0.0f) {
+				p.acceleration = 3.0f; // have to be opposite sign as gravity
+			} else {
+				p.acceleration = -3.0f;
+			}
+			p.jump_pressing = true;
+		} else if (!p.controls.jump.pressed) {
+			p.jump_pressing = false;
 		}
 
 		if (p.movement_index == 0) {
+			p.position.y += p.acceleration * elapsed;
+			bool collide = false;
+			float leftA = p.position.x - PlayerRadius;
+			float rightA = p.position.x + PlayerRadius;
+			float topA = p.position.y + PlayerRadius;
+			float bottomA = p.position.y - PlayerRadius;
+			for (auto &platform : platforms) {
+				float leftB = platform.positionMin.x;
+				float rightB = platform.positionMax.x;
+				float topB = platform.positionMax.y;
+				float bottomB = platform.positionMin.y;
+				if (check_collision(leftA, leftB, rightA, rightB, topA, topB, bottomA, bottomB)) {
+					collide = true;
+					p.position.y -= p.acceleration * elapsed;
+					if (p.gravity < 0.0f) {
+						if (p.position.y < bottomB - PlayerRadius) {
+							p.position.y = bottomB - PlayerRadius - 0.001f;
+						} else {
+							p.position.y = topB + PlayerRadius + 0.001f;
+						}
+					} else {
+						if (p.position.y > topB + PlayerRadius) {
+							p.position.y = topB + PlayerRadius + 0.001f;
+						} else {
+							p.position.y = bottomB - PlayerRadius - 0.001f;
+						}
+					}
+					p.acceleration = 0.0f;
+				}
+			}
+			if (!collide) {
+				p.acceleration += p.gravity * elapsed;
+			}
+
 			if (p.controls.left.pressed && !p.controls.right.pressed) {
 				p.position.x -= p.velocity.x * elapsed;
 			} else if (!p.controls.left.pressed && p.controls.right.pressed) {
 				p.position.x += p.velocity.x * elapsed;
 			} 
-
-			p.position.y += p.acceleration * elapsed;
-			p.acceleration += p.gravity * elapsed;
 		} else {
+			p.position.x += p.acceleration * elapsed;
+			bool collide = false;
+			float leftA = p.position.x - PlayerRadius;
+			float rightA = p.position.x + PlayerRadius;
+			float topA = p.position.y + PlayerRadius;
+			float bottomA = p.position.y - PlayerRadius;
+			for (auto &platform : platforms) {
+				float leftB = platform.positionMin.x;
+				float rightB = platform.positionMax.x;
+				float topB = platform.positionMax.y;
+				float bottomB = platform.positionMin.y;
+				if (check_collision(leftA, leftB, rightA, rightB, topA, topB, bottomA, bottomB)) {
+					collide = true;
+					p.position.x -= p.acceleration * elapsed;
+					if (p.gravity < 0.0f) {
+						if (p.position.x < leftB - PlayerRadius) {
+							p.position.x = leftB - PlayerRadius - 0.001f;
+						} else {
+							p.position.x = rightB + PlayerRadius + 0.001f;
+						}
+					} else {
+						if (p.position.x > rightB + PlayerRadius) {
+							p.position.x = rightB + PlayerRadius + 0.001f;
+						} else {
+							p.position.x = leftB - PlayerRadius - 0.001f;
+						}
+					}
+					
+					p.acceleration = 0.0f;
+				}
+			}
+			if (!collide) {
+				p.acceleration += p.gravity * elapsed;
+			}
+			
 			if (p.controls.down.pressed && !p.controls.up.pressed) {
 				p.position.y -= p.velocity.y * elapsed;
 			} else if (!p.controls.down.pressed && p.controls.up.pressed) {
 				p.position.y += p.velocity.y * elapsed;
 			} 
-
-			p.position.x += p.acceleration * elapsed;
-			p.acceleration += p.gravity * elapsed;
 		}
 
 		//reset 'downs' since controls have been handled:
@@ -197,6 +290,7 @@ void Game::update(float elapsed) {
 		p.controls.up.downs = 0;
 		p.controls.down.downs = 0;
 		p.controls.jump.downs = 0;
+		p.controls.jump.pressed = false;
 	}
 
 	//collision resolution:
@@ -217,6 +311,43 @@ void Game::update(float elapsed) {
 		// }
 
 		//player/block collisions:
+		float leftA = p1.position.x - PlayerRadius;
+		float rightA = p1.position.x + PlayerRadius;
+		float topA = p1.position.y + PlayerRadius;
+		float bottomA = p1.position.y - PlayerRadius;
+		for (auto &platform : platforms) {
+			float leftB = platform.positionMin.x;
+			float rightB = platform.positionMax.x;
+			float topB = platform.positionMax.y;
+			float bottomB = platform.positionMin.y;
+			if (check_collision(leftA, leftB, rightA, rightB, topA, topB, bottomA, bottomB)) {
+				if (p1.movement_index == 0) {
+					if (p1.controls.left.pressed && !p1.controls.right.pressed) {
+						p1.position.x += p1.velocity.x * elapsed;
+						if (p1.position.x > rightB + PlayerRadius) {
+							p1.position.x = rightB + PlayerRadius;
+						}
+					} else if (!p1.controls.left.pressed && p1.controls.right.pressed) {
+						p1.position.x -= p1.velocity.x * elapsed;
+						if (p1.position.x < leftB - PlayerRadius) {
+							p1.position.x = leftB - PlayerRadius;
+						}
+					} 
+				} else {
+					if (p1.controls.down.pressed && !p1.controls.up.pressed) {
+						p1.position.y += p1.velocity.y * elapsed;
+						if (p1.position.y > topB + PlayerRadius) {
+							p1.position.y = topB + PlayerRadius;
+						}
+					} else if (!p1.controls.down.pressed && p1.controls.up.pressed) {
+						p1.position.y -= p1.velocity.y * elapsed;
+						if (p1.position.y < bottomB - PlayerRadius) {
+							p1.position.y = bottomB - PlayerRadius;
+						}
+					} 
+				}
+			}
+		}
 
 		//player/arena collisions:
 		if (p1.position.x < ArenaMin.x + PlayerRadius) {
