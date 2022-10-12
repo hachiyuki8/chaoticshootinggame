@@ -48,9 +48,9 @@ struct Player {
 	int movement_index = 0; // 0 for x axis (horizontal move), 1 for y (vertical)
 	float acceleration = 0.0f; 
 	float gravity = -9.8f;
+	int HP = 100;
 
 	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
-	int hp = 100;
 	std::string name = "";
 };
 

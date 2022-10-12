@@ -160,6 +160,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
 		for (auto const &player : game.players) {
+			draw_text(glm::vec2(-1.5f, 0.8f), "HP: " + std::to_string(player.HP) + "/100", 0.06f);
+			if (player.HP <= 0) {
+				draw_text(glm::vec2(-1.5f, 0.7f), "You are out :(", 0.06f);
+			}
+			
 			if (player.movement_index == 1 && player.gravity < 0.0f) {
 				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: LEFT", 0.06f);
 			} else if (player.movement_index == 1 && player.gravity > 0.0f) {

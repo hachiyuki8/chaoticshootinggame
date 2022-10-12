@@ -91,20 +91,12 @@ Game::Game() : mt(0x15466666) {
 		platforms.back().positionMax = glm::vec2(-0.8f, -0.4f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(0.6f, 0.3f);
-		platforms.back().positionMax = glm::vec2(1.2f, 0.4f);
+		platforms.back().positionMin = glm::vec2(1.0f, -0.8f);
+		platforms.back().positionMax = glm::vec2(1.4f, -0.7f);
 
 		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(1.0f, -0.7f);
-		platforms.back().positionMax = glm::vec2(1.4f, -0.6f);
-
-		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(0.0f, -0.7f);
-		platforms.back().positionMax = glm::vec2(0.4f, -0.6f);
-
-		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(-1.0f, -0.1f);
-		platforms.back().positionMax = glm::vec2(-0.6f, 0.0f);
+		platforms.back().positionMin = glm::vec2(0.1f, -0.4f);
+		platforms.back().positionMax = glm::vec2(0.5f, -0.3f);
 	}
 
 	// vertical
@@ -112,10 +104,6 @@ Game::Game() : mt(0x15466666) {
 		platforms.emplace_back();
 		platforms.back().positionMin = glm::vec2(-0.8f, 0.3f);
 		platforms.back().positionMax = glm::vec2(-0.7f, 0.8f);
-
-		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(0.7f, -1.0f);
-		platforms.back().positionMax = glm::vec2(0.8f, -0.5f);
 
 		platforms.emplace_back();
 		platforms.back().positionMin = glm::vec2(0.5f, 0.6f);
@@ -128,10 +116,6 @@ Game::Game() : mt(0x15466666) {
 		platforms.emplace_back();
 		platforms.back().positionMin = glm::vec2(-0.5f, -0.7f);
 		platforms.back().positionMax = glm::vec2(-0.4f, -0.2f);
-
-		platforms.emplace_back();
-		platforms.back().positionMin = glm::vec2(-0.1f, -0.3f);
-		platforms.back().positionMax = glm::vec2(0.0f, 0.1f);
 	}
 
 	srand(time(NULL)); // https://cplusplus.com/reference/cstdlib/rand/
@@ -210,7 +194,7 @@ void Game::update(float elapsed) {
 
 	//shoot bullet
 	for (auto &p : players) {
-		if (p.controls.shoot.pressed && !p.shoot_pressing) {
+		if (p.controls.shoot.pressed && !p.shoot_pressing && p.HP > 0) {
 			bullets.emplace_back();
 			bullets.back().position = p.position;
 			bullets.back().velocity = p.bullet_direction;
@@ -424,11 +408,56 @@ void Game::update(float elapsed) {
 	}
 
 	//bullet position update
-	for (auto &b : bullets) {
-		b.position.x += elapsed * b.velocity.x;
-		b.position.y += elapsed * b.velocity.y;
+	// https://stackoverflow.com/a/596180
+	std::list<Bullet>::iterator iter = bullets.begin();
+	while (iter != bullets.end()) {
+		(*iter).position.x += elapsed * (*iter).velocity.x;
+		(*iter).position.y += elapsed * (*iter).velocity.y;
 
-		// TODO: check collision
+		//bullet/arena collisions:
+		if ((*iter).position.x < ArenaMin.x + BulletRadius 
+			|| (*iter).position.x > ArenaMax.x - BulletRadius
+			|| (*iter).position.y < ArenaMin.y + BulletRadius
+			|| (*iter).position.y > ArenaMax.y + BulletRadius ) {
+			iter = bullets.erase(iter);
+		} else {
+			//bullet/block collisions:
+			float leftA = (*iter).position.x - BulletRadius;
+			float rightA = (*iter).position.x + BulletRadius;
+			float topA = (*iter).position.y + BulletRadius;
+			float bottomA = (*iter).position.y - BulletRadius;
+			bool collide = false;
+			for (auto &platform : platforms) {
+				float leftB = platform.positionMin.x;
+				float rightB = platform.positionMax.x;
+				float topB = platform.positionMax.y;
+				float bottomB = platform.positionMin.y;
+				if (check_collision(leftA, leftB, rightA, rightB, topA, topB, bottomA, bottomB)) {
+					collide = true;
+					break;
+				}
+			}
+			if (collide) {
+				iter = bullets.erase(iter);
+			} else {
+				//bullet/player collisions:
+				bool collide2 = false;
+				for (auto &player : players) {
+					float dist = std::sqrt(
+						std::pow(player.position.x - (*iter).position.x, 2) + 
+						std::pow(player.position.y - (*iter).position.y, 2));
+					if (dist < PlayerRadius + BulletRadius && player.color != (*iter).color) {
+						collide2 = true;
+						player.HP -= 10;
+						break;
+					}
+				} if (collide2) {
+					iter = bullets.erase(iter);
+				} else {
+					++iter;
+				}
+			}
+		}
 	}
 }
 
@@ -452,6 +481,7 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		connection.send(player.color);
 		connection.send(player.movement_index);
 		connection.send(player.gravity);
+		connection.send(player.HP);
 	
 		//NOTE: can't just 'send(name)' because player.name is not plain-old-data type.
 		//effectively: truncates player name to 255 chars
@@ -522,6 +552,7 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&player.color);
 		read(&player.movement_index);
 		read(&player.gravity);
+		read(&player.HP);
 		uint8_t name_len;
 		read(&name_len);
 		//n.b. would probably be more efficient to directly copy from recv_buffer, but I think this is clearer:
