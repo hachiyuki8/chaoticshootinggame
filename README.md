@@ -1,20 +1,16 @@
-# (TODO: your game's title)
+# Chaotic Shooting Game
 
-Author: (TODO: your name)
+**Author**: Joanna Yao
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+**Design**: A platform shooting game except that the gravity changes to any of the four direction every 5 second for each player
 
-Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
+**Networking**: Clients send controls to the server, the server updates all the game state and sends relevant information to each client (including player information such as position, velocity, HP and gravity direction, as well as position of all the bullets on the screen), so that each client can use these information to render the correct game state.
 
-Screen Shot:
+**Screen Shot**:
 
 ![Screen Shot](screenshot.png)
 
-How To Play:
-
-(TODO: describe the controls and (if needed) goals/strategy.)
-
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+**How To Play**: WS or AD to move (depending on gravity direction), SPACE to jump, L to shoot
 
 This game was built with [NEST](NEST.md).
 
