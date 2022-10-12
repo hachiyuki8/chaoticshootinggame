@@ -317,12 +317,20 @@ void Game::update(float elapsed) {
 				p1.bullet_direction = glm::vec2(-2.0f, 0.0f);
 			} else if (!p1.controls.left.pressed && p1.controls.right.pressed) {
 				p1.bullet_direction = glm::vec2(2.0f, 0.0f);
+			} else if (p1.controls.down.pressed && !p1.controls.up.pressed) {
+				p1.bullet_direction = glm::vec2(0.0f, -2.0f);
+			} else if (!p1.controls.down.pressed && p1.controls.up.pressed) {
+				p1.bullet_direction = glm::vec2(0.0f, 2.0f);
 			} 
 		} else {
 			if (p1.controls.down.pressed && !p1.controls.up.pressed) {
 				p1.bullet_direction = glm::vec2(0.0f, -2.0f);
 			} else if (!p1.controls.down.pressed && p1.controls.up.pressed) {
 				p1.bullet_direction = glm::vec2(0.0f, 2.0f);
+			} else if (p1.controls.left.pressed && !p1.controls.right.pressed) {
+				p1.bullet_direction = glm::vec2(-2.0f, 0.0f);
+			} else if (!p1.controls.left.pressed && p1.controls.right.pressed) {
+				p1.bullet_direction = glm::vec2(2.0f, 0.0f);
 			} 
 		}
 
@@ -448,7 +456,9 @@ void Game::update(float elapsed) {
 						std::pow(player.position.y - (*iter).position.y, 2));
 					if (dist < PlayerRadius + BulletRadius && player.color != (*iter).color) {
 						collide2 = true;
-						player.HP -= 10;
+						if (player.HP > 0) {
+							player.HP -= 10;
+						}
 						break;
 					}
 				} if (collide2) {

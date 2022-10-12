@@ -23,27 +23,21 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		if (evt.key.repeat) {
 			//ignore repeats
 		} else if (evt.key.keysym.sym == SDLK_a) {
-			controls.left.downs += 1;
 			controls.left.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_d) {
-			controls.right.downs += 1;
 			controls.right.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_w) {
-			controls.up.downs += 1;
 			controls.up.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
-			controls.down.downs += 1;
 			controls.down.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_SPACE) {
-			controls.jump.downs += 1;
 			controls.jump.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_l) {
-			controls.shoot.downs += 1;
 			controls.shoot.pressed = true;
 			return true;
 		}
@@ -160,20 +154,23 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
 		for (auto const &player : game.players) {
-			draw_text(glm::vec2(-1.5f, 0.8f), "HP: " + std::to_string(player.HP) + "/100", 0.06f);
-			if (player.HP <= 0) {
-				draw_text(glm::vec2(-1.5f, 0.7f), "You are out :(", 0.06f);
+			if (&player == &game.players.front()) {
+				draw_text(glm::vec2(-1.5f, 0.8f), "HP: " + std::to_string(player.HP) + "/100", 0.06f);
+				if (player.HP <= 0) {
+					draw_text(glm::vec2(-1.5f, 0.7f), "You are out :(", 0.06f);
+				}
+
+				if (player.movement_index == 1 && player.gravity < 0.0f) {
+					draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: LEFT", 0.06f);
+				} else if (player.movement_index == 1 && player.gravity > 0.0f) {
+					draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: RIGHT", 0.06f);
+				} else if (player.movement_index == 0 && player.gravity < 0.0f) {
+					draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: DOWN", 0.06f);
+				} else if (player.movement_index == 0 && player.gravity > 0.0f) {
+					draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: UP", 0.06f);
+				} 
 			}
-			
-			if (player.movement_index == 1 && player.gravity < 0.0f) {
-				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: LEFT", 0.06f);
-			} else if (player.movement_index == 1 && player.gravity > 0.0f) {
-				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: RIGHT", 0.06f);
-			} else if (player.movement_index == 0 && player.gravity < 0.0f) {
-				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: DOWN", 0.06f);
-			} else if (player.movement_index == 0 && player.gravity > 0.0f) {
-				draw_text(glm::vec2(-1.5f, 0.9f), "Gravity Direction: UP", 0.06f);
-			} 
+
 			glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
 			if (&player == &game.players.front()) {
 				//mark current player (which server sends first):
